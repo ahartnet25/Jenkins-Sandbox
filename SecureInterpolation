@@ -1,0 +1,39 @@
+//Fix->The following steps that have been detected may have insecure interpolation of sensitive variable
+// The multiline is the only way to get around it for the sshCommand
+
+def remote = [:]
+    remote.name = 'NAME'
+    remote.host = 'SERVERNAME'
+    remote.user = 'USER'
+    remote.password = 'PASSWORD'
+    remote.allowAnyHosts = true  
+def key = 'MYKEY'    
+
+
+pipeline {
+    agent any
+    stages {
+        stage ('Build') {
+            steps {
+                script {
+                    myName = "Andy"
+                }
+                
+                  bat """
+                    echo "HELLO ${myName}"
+                  """
+                  
+                 bat """
+                    echo 'HELLO AGAIN $myName'
+                  """
+                  
+                bat 'echo HELLO AGAIN AND AGAIN $myName'
+                
+                sshCommand remote: remote, command: "ls -lrt"
+                sshCommand remote: remote, command: """
+                                                      ./test.sh '' $key
+                                                    """
+            }
+        }
+    }
+}
