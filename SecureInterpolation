@@ -16,7 +16,7 @@ pipeline {
         stage ('Build') {
             steps {
                 script {
-                    myName = "Andy"
+                    myName = "ANDY"
                 }
                 
                   bat """
@@ -30,9 +30,24 @@ pipeline {
                 bat 'echo HELLO AGAIN AND AGAIN $myName'
                 
                 sshCommand remote: remote, command: "ls -lrt"
-                sshCommand remote: remote, command: """
-                                                      ./test.sh '' $key
-                                                    """
+                
+                withCredentials([usernamePassword(credentialsId: "api-service", usernameVariable: 'username', passwordVariable: 'password')]) {
+                    sshCommand remote: remote, command: './test.sh ' + " '' " +  password //WORKS since there are no ${} in string
+                    sshCommand remote: remote, command: "./test.sh '' " + key //WORKS since there are no ${} in string
+                    sshCommand remote: remote, command: "./test.sh '' ${key} " //WORKS even though a ${} is in the string since it does not contain a password
+                    sshCommand remote: remote, command: "./test.sh ${key} '' " //WORKS even though a ${} is in the string since it does not contain a password
+                }
+                
+                withCredentials([
+                      usernamePassword(credentialsId: "api-service-auth", usernameVariable: 'authame', passwordVariable: 'authpass')
+                      ]) {
+                    sshCommand remote: remote, command: './test.sh ' + " '' " +  authpass + " ''" //WORKS since none of the ${} are in string even though a password is
+                    sshCommand remote: remote, command: "./test.sh ${key}" + " '' " +  authpass + " ''" //WARNING
+                    sshCommand remote: remote, command: './test.sh $key' + " '' " +  authpass + " ''" //No WARNING bc of no ${} ERROR does not substitute the $key
+                    sshCommand remote: remote, command: './test.sh ' + key + " '' " +  authpass + " ''" //WORKS WITH NO WARNING
+                }
+
+                    
             }
         }
     }
